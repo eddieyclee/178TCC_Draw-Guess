@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+<title>你畫我猜</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="wrap">
+    <h1 class="title display">你畫我猜</h1>
+    <p class="subtitle">動手畫，動腦猜</p>
+
+    <div class="card">
+      <label class="field-label" for="name">你的暱稱</label>
+      <input type="text" id="name" maxlength="12" placeholder="輸入暱稱" />
+
+      <button class="btn btn-pink" id="createBtn" type="button">➕ 建立新房間</button>
+
+      <div class="divider">或</div>
+
+      <label class="field-label" for="code">房號</label>
+      <input type="text" id="code" maxlength="4" placeholder="輸入 4 碼房號" style="text-align:center; letter-spacing:0.3em; font-weight:600;" />
+      <button class="btn btn-blue" id="joinBtn" type="button">➜ 加入房間</button>
+
+      <p class="error-text" id="err" style="display:none;"></p>
+    </div>
+
+    <p class="footnote">主席／總監控者請前往 <a href="admin.html" style="color:#BFE3D2;">admin.html</a></p>
+    <p class="footnote"><a href="#" id="resetLocalBtn" style="color:#BFE3D2;">清除本機身份，重新開始</a></p>
+  </div>
+
+  <!-- Firebase 傳統版 SDK（非 ES Module，避免 module 載入相關問題） -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+  <script>
+    // ====== Firebase 設定 ======
+    var firebaseConfig = {
+      apiKey: "AIzaSyDUleqlB3HfciOfp862fsnD_VU592RxgPY",
+      authDomain: "draw-guess-game-c642f.firebaseapp.com",
+      databaseURL: "https://draw-guess-game-c642f-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "draw-guess-game-c642f",
+      storageBucket: "draw-guess-game-c642f.firebasestorage.app",
+      messagingSenderId: "720392554676",
+      appId: "1:720392554676:web:4e5d9eb131f6d0878bafe1"
+    };
+    firebase.initializeApp(firebaseConfig);
+    var db = firebase.database();
+
+    // ====== 工具函式 ======
+    function genCode() {
+      var chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+      var s = "";
+      for (var i = 0; i < 4; i++) s += chars[Math.floor(Math.random() * chars.length)];
+      return s;
+    }
+    function getOrCreatePlayerId() {
+      var id = localStorage.getItem("dg_playerId");
+      if (!id) {
+        id = "p_" + Math.random().toString(36).slice(2, 10);
+        localStorage.setItem("dg_playerId", id);
+      }
+      return id;
+    }
+
+    var nameInput = document.getElementById("name");
+    var codeInput = document.getElementById("code");
+    var errEl = document.getElementById("err");
+    var createBtn = document.getElementById("createBtn");
+    var joinBtn = document.getElementById("joinBtn");
+
+    var savedName = localStorage.getItem("dg_name");
+    if (savedName) nameInput.value = savedName;
+
+    var urlParams = new URLSearchParams(location.search);
+    var prefillCode = urlParams.get("code");
+    if (prefillCode) codeInput.value = prefillCode.toUpperCase();
+
+    function showError(msg) {
+      errEl.textContent = msg;
+      errEl.style.display = "block";
+      errEl.style.color = "#E0405A";
+    }
+    function showInfo(msg) {
+      errEl.textContent = msg;
+      errEl.style.display = "block";
+      errEl.style.color = "#118AB2";
+    }
+
+    document.getElementById("resetLocalBtn").addEventListener("click", function (e) {
+      e.preventDefault();
+      localStorage.removeItem("dg_playerId");
+      localStorage.removeItem("dg_name");
+      location.reload();
+    });
+
+    nameInput.addEventListener("keydown", function (e) { if (e.key === "Enter") createBtn.click(); });
+    codeInput.addEventListener("keydown", function (e) { if (e.key === "Enter") joinBtn.click(); });
+
+    createBtn.addEventListener("click", function () {
+      var name = nameInput.value.trim();
+      if (!name) { showError("請輸入暱稱"); return; }
+      createBtn.disabled = true;
+      createBtn.textContent = "連線中...";
+      localStorage.setItem("dg_name", name);
+      var playerId = getOrCreatePlayerId();
+      var code = genCode();
+
+      var room = {
+        code: code,
+        hostId: playerId,
+        status: "lobby",
+        drawerIndex: 0,
+        currentWord: null,
+        players: {},
+        playerOrder: [playerId],
+        guesses: {},
+        strokes: {},
+        correctGuessers: {},
+        questionNumber: 1,
+        createdAt: Date.now()
+      };
+      room.players[playerId] = { name: name, score: 0, joinedAt: Date.now() };
+
+      db.ref("rooms/" + code).set(room)
+        .then(function () {
+          document.querySelector(".card").innerHTML =
+            '<p style="text-align:center; color:#1D8A57; font-weight:700; margin-bottom:16px;">✅ 房間建立成功！房號 ' + code + '</p>' +
+            '<a href="room.html?code=' + code + '&pid=' + playerId + '" class="btn btn-pink" style="text-decoration:none; display:flex; align-items:center; justify-content:center;">➜ 點我進入房間</a>';
+        })
+        .catch(function (err) {
+          createBtn.disabled = false;
+          createBtn.textContent = "➕ 建立新房間";
+          showError("建立房間失敗：" + err.message);
+        });
+    });
+
+    joinBtn.addEventListener("click", function () {
+      var name = nameInput.value.trim();
+      var code = codeInput.value.trim().toUpperCase();
+      if (!name) { showError("請輸入暱稱"); return; }
+      if (!code) { showError("請輸入房號"); return; }
+      joinBtn.disabled = true;
+      joinBtn.textContent = "連線中...";
+      showInfo("正在查詢房號 " + code + "...");
+      localStorage.setItem("dg_name", name);
+      var playerId = getOrCreatePlayerId();
+
+      db.ref("rooms/" + code).once("value")
+        .then(function (snap) {
+          if (!snap.exists()) {
+            joinBtn.disabled = false;
+            joinBtn.textContent = "➜ 加入房間";
+            showError("找不到房號 " + code + "，請確認房主畫面顯示的房號是否一致");
+            return;
+          }
+          showInfo("找到房間，正在加入...");
+          var roomData = snap.val();
+          var players = roomData.players || {};
+          var playerOrder = roomData.playerOrder || Object.keys(players);
+          var alreadyIn = !!players[playerId];
+          var writePromise;
+          if (!alreadyIn) {
+            players[playerId] = { name: name, score: 0, joinedAt: Date.now() };
+            playerOrder.push(playerId);
+            writePromise = db.ref("rooms/" + code).update({ players: players, playerOrder: playerOrder });
+          } else {
+            writePromise = Promise.resolve();
+          }
+          return writePromise.then(function () {
+            document.querySelector(".card").innerHTML =
+              '<p style="text-align:center; color:#1D8A57; font-weight:700; margin-bottom:16px;">✅ 加入成功！房號 ' + code + '</p>' +
+              '<a href="room.html?code=' + code + '&pid=' + playerId + '" class="btn btn-blue" style="text-decoration:none; display:flex; align-items:center; justify-content:center;">➜ 點我進入房間</a>';
+          });
+        })
+        .catch(function (err) {
+          joinBtn.disabled = false;
+          joinBtn.textContent = "➜ 加入房間";
+          showError("加入房間失敗：" + err.message);
+        });
+    });
+  </script>
+</body>
+</html>

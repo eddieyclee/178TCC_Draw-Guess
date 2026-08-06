@@ -1,0 +1,212 @@
+@import url('https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=Zen+Maru+Gothic:wght@400;500;700;900&display=swap');
+
+:root {
+  --bg-board: #1B4332;
+  --bg-board-dark: #14342A;
+  --panel: #FBF9F4;
+  --ink: #2B2B2B;
+  --accent-pink: #EF476F;
+  --accent-blue: #118AB2;
+  --accent-green: #06D6A0;
+  --accent-yellow: #FFD166;
+  --stone-100: #F5F3EF;
+  --stone-200: #E7E3DB;
+  --stone-400: #A39A8B;
+  --stone-500: #8A8072;
+  --stone-700: #4A453D;
+  --stone-800: #2E2A24;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg-board);
+  font-family: 'Zen Maru Gothic', sans-serif;
+  color: var(--ink);
+}
+
+.display {
+  font-family: 'ZCOOL KuaiLe', cursive;
+  text-shadow: 2px 2px 0 var(--bg-board-dark);
+}
+
+.wrap {
+  max-width: 460px;
+  margin: 0 auto;
+  padding: 24px 16px 40px;
+}
+
+.wrap.wide { max-width: 1100px; }
+
+h1.title {
+  color: #fff;
+  font-size: 3.4rem;
+  text-align: center;
+  margin: 8px 0 2px;
+}
+
+.subtitle {
+  color: #BFE3D2;
+  text-align: center;
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  margin-bottom: 28px;
+}
+
+.card {
+  background: var(--panel);
+  border-radius: 18px;
+  padding: 22px;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.25);
+}
+
+label.field-label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--stone-500);
+  margin-bottom: 6px;
+}
+
+input[type="text"], input[type="password"] {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--stone-200);
+  font-family: inherit;
+  font-size: 1rem;
+  color: var(--stone-800);
+  margin-bottom: 16px;
+}
+input:focus { outline: 2px solid var(--accent-green); outline-offset: 1px; }
+
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 13px;
+  border: none;
+  border-radius: 10px;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 0.98rem;
+  color: #fff;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn:active:not(:disabled) { opacity: 0.85; }
+.btn-pink { background: var(--accent-pink); }
+.btn-blue { background: var(--accent-blue); }
+.btn-green { background: var(--accent-green); }
+.btn-outline {
+  background: var(--stone-100);
+  color: var(--stone-700);
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 16px 0;
+  color: var(--stone-400);
+  font-size: 0.78rem;
+}
+.divider::before, .divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--stone-200);
+}
+
+.error-text { color: #E0405A; font-size: 0.85rem; text-align: center; margin-top: 10px; }
+
+.footnote { color: rgba(191,227,210,0.7); font-size: 0.72rem; text-align: center; margin-top: 16px; }
+
+.room-code {
+  text-align: center;
+  color: #fff;
+  margin-bottom: 20px;
+}
+.room-code .label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; color: #BFE3D2; }
+.room-code .code { font-size: 3rem; letter-spacing: 0.2em; }
+
+.player-list { list-style: none; margin: 0 0 18px; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.player-list li {
+  display: flex; justify-content: space-between; align-items: center;
+  background: var(--stone-100); border-radius: 10px; padding: 10px 14px;
+  font-size: 0.92rem; font-weight: 500;
+}
+.you-tag { font-size: 0.72rem; color: var(--accent-green); font-weight: 700; }
+
+/* game screen */
+.game-top {
+  display: flex; align-items: center; justify-content: space-between;
+  color: #fff; margin-bottom: 14px;
+}
+.pill { background: rgba(255,255,255,0.12); padding: 5px 12px; border-radius: 999px; font-size: 0.85rem; }
+.pill-row { display: flex; gap: 10px; }
+
+.game-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
+@media (min-width: 820px) {
+  .game-grid { grid-template-columns: 2fr 1fr; }
+}
+
+canvas#board {
+  width: 100%;
+  aspect-ratio: 600/400;
+  border-radius: 12px;
+  border: 1px solid var(--stone-200);
+  touch-action: none;
+  background: #fff;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.color-row { display: flex; gap: 8px; align-items: center; }
+.swatch {
+  width: 26px; height: 26px; border-radius: 999px; border: 2px solid #fff;
+  box-shadow: 0 0 0 1px var(--stone-200);
+  cursor: pointer;
+}
+.swatch.active { box-shadow: 0 0 0 2px var(--ink); }
+.eraser-btn {
+  background: var(--stone-100);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+}
+.eraser-btn.active { background: var(--stone-200); }
+
+.chat-box { display: flex; flex-direction: column; height: 100%; }
+.chat-log { flex: 1; overflow-y: auto; max-height: 220px; display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
+.chat-line { font-size: 0.9rem; padding: 5px 8px; border-radius: 6px; }
+.chat-line.correct { background: #DCF5E9; color: #1D8A57; font-weight: 600; }
+.guess-input-row { display: flex; gap: 8px; align-items: center; justify-content: center; margin-bottom: 6px; }
+.guess-input-row input { margin-bottom: 0; flex: 1; text-align: center; padding-top: 14px; padding-bottom: 14px; }
+.icon-btn { padding: 11px 14px; border-radius: 10px; border: none; background: var(--accent-green); color: #fff; cursor: pointer; }
+
+.scoreboard { list-style: none; margin: 0; padding: 0; }
+.scoreboard li { display: flex; justify-content: space-between; font-size: 0.9rem; padding: 4px 0; }
+.scoreboard li.drawer { color: var(--accent-pink); font-weight: 700; }
+
+/* admin dashboard */
+.admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+.rooms-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+.room-card { background: var(--panel); border-radius: 14px; padding: 16px; }
+.room-card-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+.room-card-head .code { font-family: 'ZCOOL KuaiLe', cursive; font-size: 1.8rem; }
+.status-tag { font-size: 0.7rem; padding: 2px 8px; border-radius: 999px; background: var(--stone-200); color: var(--stone-700); }
+.room-meta { font-size: 0.82rem; color: var(--stone-500); margin-bottom: 10px; }
+.mini-log { max-height: 130px; overflow-y: auto; font-size: 0.82rem; display: flex; flex-direction: column; gap: 3px; margin-bottom: 10px; }
+.mini-log .correct { color: #1D8A57; font-weight: 600; }
+.delete-btn { font-size: 0.75rem; color: #E0405A; background: none; border: none; cursor: pointer; padding: 0; }
+.empty-state { color: #BFE3D2; text-align: center; padding: 60px 20px; }

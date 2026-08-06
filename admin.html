@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+<title>主席總監控台</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="wrap wide">
+    <div class="admin-header">
+      <h1 class="display" style="color:#fff; font-size:2.6rem; margin:0;">主席總監控台</h1>
+      <span class="pill" id="roomCountPill" style="color:#fff;">0 個房間</span>
+    </div>
+    <div class="rooms-grid" id="roomsGrid"></div>
+    <p class="empty-state" id="emptyState" style="display:none;">目前沒有進行中的房間</p>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+  <script>
+    var firebaseConfig = {
+      apiKey: "AIzaSyDUleqlB3HfciOfp862fsnD_VU592RxgPY",
+      authDomain: "draw-guess-game-c642f.firebaseapp.com",
+      databaseURL: "https://draw-guess-game-c642f-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "draw-guess-game-c642f",
+      storageBucket: "draw-guess-game-c642f.firebasestorage.app",
+      messagingSenderId: "720392554676",
+      appId: "1:720392554676:web:4e5d9eb131f6d0878bafe1"
+    };
+    firebase.initializeApp(firebaseConfig);
+    var db = firebase.database();
+
+    var roomsGrid = document.getElementById("roomsGrid");
+    var roomCountPill = document.getElementById("roomCountPill");
+    var emptyState = document.getElementById("emptyState");
+
+    var STATUS_LABEL = {
+      lobby: "大廳等待中",
+      inputWord: "等待出題",
+      drawing: "繪圖中",
+      roundEnd: "本題結算",
+      gameEnd: "已結束"
+    };
+
+    function escapeHtml(s) {
+      return String(s || "").replace(/[&<>"']/g, function (c) {
+        return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+      });
+    }
+
+    function computeAdvanceToNext(current) {
+      var order = current.playerOrder || Object.keys(current.players || {});
+      current.drawerIndex = ((current.drawerIndex || 0) + 1) % order.length;
+      current.questionNumber = (current.questionNumber || 1) + 1;
+      current.status = "inputWord";
+      current.currentWord = null;
+      current.strokes = {};
+      current.guesses = {};
+      current.correctGuessers = {};
+      return current;
+    }
+
+    db.ref("rooms").on("value", function (snap) {
+      var rooms = snap.val() || {};
+      var codes = Object.keys(rooms).sort(function (a, b) { return (rooms[b].createdAt || 0) - (rooms[a].createdAt || 0); });
+
+      roomCountPill.textContent = codes.length + " 個房間";
+      emptyState.style.display = codes.length === 0 ? "block" : "none";
+
+      roomsGrid.innerHTML = "";
+      codes.forEach(function (code) {
+        roomsGrid.appendChild(buildRoomCard(code, rooms[code]));
+      });
+    });
+
+    function buildRoomCard(code, room) {
+      var order = room.playerOrder || Object.keys(room.players || {});
+      var players = [];
+      order.forEach(function (id) {
+        if (room.players && room.players[id]) players.push(Object.assign({ id: id }, room.players[id]));
+      });
+      var drawer = players[room.drawerIndex] || null;
+
+      var card = document.createElement("div");
+      card.className = "room-card";
+
+      var guesses = Object.values(room.guesses || {}).sort(function (a, b) { return b.ts - a.ts; }).slice(0, 10);
+      var guessesHtml = guesses.length
+        ? guesses.map(function (g) {
+            return '<div class="' + (g.correct ? "correct" : "") + '">' + escapeHtml(g.name) + "：" + (g.correct ? "✔ 答對了" : escapeHtml(g.text)) + "</div>";
+          }).join("")
+        : '<div style="color:var(--stone-400);">尚無作答</div>';
+
+      var scoreHtml = players.slice().sort(function (a, b) { return (b.score || 0) - (a.score || 0); })
+        .map(function (p) {
+          return '<div style="display:flex; justify-content:space-between;"><span>' + escapeHtml(p.name) + (drawer && p.id === drawer.id ? " ✏️" : "") + "</span><span>" + (p.score || 0) + "</span></div>";
+        }).join("");
+
+      var correctCount = Object.keys(room.correctGuessers || {}).length;
+      var guesserTotal = Math.max(players.length - 1, 0);
+
+      var metaExtra = "";
+      if (room.status === "drawing") metaExtra = "· 已答對 " + correctCount + "/" + guesserTotal;
+      if (room.status === "roundEnd") metaExtra = "· 答案：<strong>" + escapeHtml(room.currentWord || "") + "</strong> · 答對 " + correctCount + "/" + guesserTotal;
+
+      var canvasHtml = "";
+      if (room.status === "drawing" || room.status === "roundEnd") {
+        canvasHtml = '<label class="field-label" style="margin-bottom:4px;">畫布即時預覽</label>' +
+          '<canvas class="mini-canvas" width="600" height="400" style="width:100%; aspect-ratio:600/400; border-radius:8px; border:1px solid var(--stone-200); background:#fff; display:block; margin-bottom:12px;"></canvas>';
+      }
+
+      card.innerHTML =
+        '<div class="room-card-head"><span class="code">' + code + '</span><span class="status-tag">' + (STATUS_LABEL[room.status] || room.status) + '</span></div>' +
+        '<div class="room-meta">第 ' + (room.questionNumber || 1) + ' 題 · ' + players.length + ' 位玩家' +
+        (drawer ? ' · 出題者：' + escapeHtml(drawer.name) : '') + ' ' + metaExtra + '</div>' +
+        canvasHtml +
+        '<label class="field-label" style="margin-bottom:4px;">即時作答</label>' +
+        '<div class="mini-log">' + guessesHtml + '</div>' +
+        '<label class="field-label" style="margin-bottom:4px;">分數</label>' +
+        '<div style="font-size:0.85rem; margin-bottom:12px;">' + (scoreHtml || '<span style="color:var(--stone-400);">尚無玩家</span>') + '</div>' +
+        '<div style="display:flex; gap:8px; flex-wrap:wrap;">' +
+        '<button type="button" class="admin-start-btn" style="flex:1; min-width:90px; border:none; padding:9px; border-radius:10px; font-size:0.82rem; font-weight:600; color:#fff; background:var(--accent-green); cursor:pointer;" ' + (room.status !== "lobby" || players.length < 2 ? "disabled" : "") + '>開始遊戲</button>' +
+        '<button type="button" class="admin-next-btn" style="flex:1; min-width:90px; border:none; padding:9px; border-radius:10px; font-size:0.82rem; font-weight:600; color:#fff; background:var(--accent-blue); cursor:pointer;" ' + (room.status !== "roundEnd" ? "disabled" : "") + '>下一題</button>' +
+        '<button type="button" class="admin-end-btn" style="flex:1; min-width:90px; border:none; padding:9px; border-radius:10px; font-size:0.82rem; font-weight:600; color:#fff; background:var(--accent-pink); cursor:pointer;" ' + (room.status === "lobby" || room.status === "gameEnd" ? "disabled" : "") + '>結束遊戲</button>' +
+        '<button type="button" class="delete-btn" style="flex-basis:100%;">刪除此房間</button>' +
+        '</div>';
+
+      card.querySelector(".admin-start-btn").addEventListener("click", function () {
+        db.ref("rooms/" + code).update({
+          status: "inputWord",
+          questionNumber: 1,
+          drawerIndex: 0,
+          currentWord: null,
+          strokes: {},
+          guesses: {},
+          correctGuessers: {}
+        });
+      });
+
+      card.querySelector(".admin-next-btn").addEventListener("click", function () {
+        db.ref("rooms/" + code).transaction(function (current) {
+          if (!current) return current;
+          if (current.status !== "roundEnd") return current;
+          return computeAdvanceToNext(current);
+        });
+      });
+
+      card.querySelector(".admin-end-btn").addEventListener("click", function () {
+        if (confirm("確定要結束房間 " + code + " 的遊戲嗎？（會顯示最終排行榜，分數保留）")) {
+          db.ref("rooms/" + code).update({ status: "gameEnd" });
+        }
+      });
+
+      card.querySelector(".delete-btn").addEventListener("click", function () {
+        if (confirm("確定要刪除房間 " + code + " 嗎？")) {
+          db.ref("rooms/" + code).remove();
+        }
+      });
+
+      var miniCanvas = card.querySelector(".mini-canvas");
+      if (miniCanvas) {
+        var mctx = miniCanvas.getContext("2d");
+        mctx.fillStyle = "#ffffff";
+        mctx.fillRect(0, 0, miniCanvas.width, miniCanvas.height);
+        mctx.lineCap = "round";
+        mctx.lineJoin = "round";
+        var strokes = room.strokes || {};
+        Object.keys(strokes).forEach(function (k) {
+          var s = strokes[k];
+          mctx.strokeStyle = s.color;
+          mctx.lineWidth = s.width;
+          mctx.beginPath();
+          mctx.moveTo(s.x0, s.y0);
+          mctx.lineTo(s.x1, s.y1);
+          mctx.stroke();
+        });
+      }
+
+      return card;
+    }
+  </script>
+</body>
+</html>

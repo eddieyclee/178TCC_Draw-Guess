@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+<title>你畫我猜 - 房間</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <div class="wrap" id="lobbyView" style="display:none;">
+    <div class="room-code">
+      <div class="label">房號</div>
+      <div class="code display" id="lobbyCode">----</div>
+    </div>
+    <div class="card">
+      <label class="field-label">邀請連結（分享給組員，點了會自動帶入房號）</label>
+      <div style="display:flex; gap:8px; margin-bottom:18px;">
+        <input type="text" id="inviteLinkInput" readonly style="margin-bottom:0; font-size:0.78rem; background:var(--stone-100);" />
+        <button id="copyLinkBtn" type="button" style="border:none; padding:0 16px; border-radius:10px; background:var(--accent-blue); color:#fff; font-weight:600; cursor:pointer; white-space:nowrap;">複製</button>
+      </div>
+      <label class="field-label">玩家 (<span id="playerCount">0</span>)</label>
+      <ul class="player-list" id="playerList"></ul>
+      <button class="btn btn-pink" id="startBtn" type="button">開始遊戲</button>
+    </div>
+  </div>
+
+  <div class="wrap wide" id="gameView" style="display:none;">
+    <div class="game-top">
+      <h2 class="display" style="font-size:2rem; margin:0;">你畫我猜</h2>
+      <div class="pill-row">
+        <span class="pill" id="roundPill">第 1 題</span>
+        <span class="pill" id="correctCountPill" style="display:none;">✔ 0 人答對</span>
+      </div>
+    </div>
+
+    <div class="game-grid">
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <p style="margin:0; font-size:0.9rem; color:var(--stone-700);">
+            出題者：<strong id="drawerName">-</strong>
+            <span id="youDrawTag" style="color:var(--accent-green); font-weight:700; display:none;">（換你出題！）</span>
+          </p>
+        </div>
+
+        <div id="inputWordBox" style="display:none; text-align:center; padding:30px 0;">
+          <div id="inputWordSelf" style="display:none;">
+            <p style="color:var(--stone-500); margin-bottom:14px;">輸入這一題要畫的題目：</p>
+            <input type="text" id="wordInput" maxlength="10" placeholder="例如：貓、彩虹、腳踏車..." style="max-width:260px; margin:0 auto 14px; display:block; text-align:center;" />
+            <button class="btn btn-blue" id="submitWordBtn" type="button" style="width:auto; padding:12px 28px; display:inline-flex;">開始畫！</button>
+          </div>
+          <p id="waitingForWordText" style="color:var(--stone-500);"></p>
+        </div>
+
+        <div id="drawingBox" style="display:none;">
+          <canvas id="board" width="600" height="400"></canvas>
+          <div id="drawerTools" style="display:none; justify-content:space-between; align-items:center; margin-top:10px; flex-wrap:wrap; gap:8px;">
+            <div class="color-row" id="colorRow"></div>
+            <div style="display:flex; gap:8px;">
+              <button type="button" style="border:none; padding:8px 14px; border-radius:10px; font-size:0.8rem; cursor:pointer; background:var(--stone-100); color:var(--stone-700);" id="clearBtn">清空畫布</button>
+              <button type="button" style="border:none; padding:8px 14px; border-radius:10px; font-size:0.8rem; cursor:pointer; background:var(--accent-pink); color:#fff;" id="endRoundBtn">公布答案，結束本題</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="roundEndBox" style="display:none; text-align:center; padding:24px 0;">
+          <p style="color:var(--stone-500); margin-bottom:4px;">正確答案是</p>
+          <p class="display" id="revealedWord" style="font-size:2.4rem; color:var(--accent-pink); margin:0 0 10px;"></p>
+          <p style="color:var(--stone-700); margin-bottom:18px;" id="tallyText">0 人答對</p>
+          <button class="btn btn-pink" id="nextRoundBtn" type="button" style="width:auto; padding:12px 28px;">下一題 ➜</button>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:16px;">
+        <div class="card">
+          <label class="field-label">排行榜</label>
+          <ul class="scoreboard" id="scoreboard"></ul>
+        </div>
+        <div class="card" style="flex:1;">
+          <label class="field-label">猜答案</label>
+          <div class="chat-box">
+            <div class="chat-log" id="chatLog"></div>
+            <div class="guess-input-row" id="guessRow" style="display:none;">
+              <input type="text" id="guessInput" placeholder="輸入答案..." />
+              <button class="icon-btn" id="guessBtn" type="button">送出</button>
+            </div>
+            <p id="alreadyCorrectText" style="display:none; text-align:center; color:var(--accent-green); font-weight:600; font-size:0.9rem;">你答對了！</p>
+            <p id="drawerNoGuessText" style="display:none; text-align:center; color:var(--stone-400); font-size:0.8rem;">出題者不能猜喔</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap" id="endView" style="display:none;">
+    <div class="card" style="text-align:center;">
+      <p style="font-size:2rem;">🏆</p>
+      <h3 class="display" style="font-size:2.6rem; margin:0 0 16px;">遊戲結束！</h3>
+      <ul class="player-list" id="finalScores"></ul>
+      <button class="btn btn-pink" id="replayBtn" type="button" style="margin-top:10px;">🔄 再玩一局（分數歸零）</button>
+    </div>
+  </div>
+
+  <div class="wrap" id="loadingView">
+    <p style="color:#fff; text-align:center;" id="loadingText">載入中...</p>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+  <script>
+    var firebaseConfig = {
+      apiKey: "AIzaSyDUleqlB3HfciOfp862fsnD_VU592RxgPY",
+      authDomain: "draw-guess-game-c642f.firebaseapp.com",
+      databaseURL: "https://draw-guess-game-c642f-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "draw-guess-game-c642f",
+      storageBucket: "draw-guess-game-c642f.firebasestorage.app",
+      messagingSenderId: "720392554676",
+      appId: "1:720392554676:web:4e5d9eb131f6d0878bafe1"
+    };
+    firebase.initializeApp(firebaseConfig);
+    var db = firebase.database();
+
+    var COLORS = ["#2B2B2B", "#EF476F", "#06D6A0", "#118AB2", "#FFD166", "#F78C6B"];
+
+    var params = new URLSearchParams(location.search);
+    var code = (params.get("code") || "").toUpperCase();
+    var myId = params.get("pid");
+    var myName = localStorage.getItem("dg_name") || "玩家";
+
+    if (!code || !myId) {
+      document.body.innerHTML = '<div class="wrap"><p style="color:#fff; text-align:center;">⚠️ 網址缺少必要參數（房號或玩家ID）。<br/>目前網址：' + escapeHtmlGlobal(location.href) + '<br/><a href="index.html" style="color:#FFD166;">回首頁重新開始</a></p></div>';
+      throw new Error("stop"); // 阻止後續程式繼續執行
+    }
+    function escapeHtmlGlobal(s) {
+      return String(s || "").replace(/[&<>"']/g, function (c) {
+        return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+      });
+    }
+
+    var roomRef = db.ref("rooms/" + code);
+
+    var loadingView = document.getElementById("loadingView");
+    var loadingText = document.getElementById("loadingText");
+    var lobbyView = document.getElementById("lobbyView");
+    var gameView = document.getElementById("gameView");
+    var endView = document.getElementById("endView");
+
+    var lobbyCode = document.getElementById("lobbyCode");
+    var playerCount = document.getElementById("playerCount");
+    var playerList = document.getElementById("playerList");
+    var startBtn = document.getElementById("startBtn");
+
+    var roundPill = document.getElementById("roundPill");
+    var correctCountPill = document.getElementById("correctCountPill");
+    var drawerName = document.getElementById("drawerName");
+    var youDrawTag = document.getElementById("youDrawTag");
+
+    var inputWordBox = document.getElementById("inputWordBox");
+    var inputWordSelf = document.getElementById("inputWordSelf");
+    var wordInput = document.getElementById("wordInput");
+    var submitWordBtn = document.getElementById("submitWordBtn");
+    var waitingForWordText = document.getElementById("waitingForWordText");
+
+    var drawingBox = document.getElementById("drawingBox");
+    var board = document.getElementById("board");
+    var ctx = board.getContext("2d");
+    var drawerTools = document.getElementById("drawerTools");
+    var colorRow = document.getElementById("colorRow");
+    var clearBtn = document.getElementById("clearBtn");
+    var endRoundBtn = document.getElementById("endRoundBtn");
+
+    var roundEndBox = document.getElementById("roundEndBox");
+    var revealedWord = document.getElementById("revealedWord");
+    var tallyText = document.getElementById("tallyText");
+    var nextRoundBtn = document.getElementById("nextRoundBtn");
+
+    var scoreboard = document.getElementById("scoreboard");
+    var chatLog = document.getElementById("chatLog");
+    var guessRow = document.getElementById("guessRow");
+    var guessInput = document.getElementById("guessInput");
+    var guessBtn = document.getElementById("guessBtn");
+    var alreadyCorrectText = document.getElementById("alreadyCorrectText");
+    var drawerNoGuessText = document.getElementById("drawerNoGuessText");
+    var finalScores = document.getElementById("finalScores");
+    var replayBtn = document.getElementById("replayBtn");
+
+    var room = null;
+    var drawnKeys = {};
+    var drawnCount = 0;
+    var currentColor = COLORS[0];
+    var currentWidth = 4;
+    var isEraser = false;
+    var ERASER_WIDTH = 22;
+
+    COLORS.forEach(function (c, i) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "swatch" + (i === 0 ? " active" : "");
+      b.style.background = c;
+      b.addEventListener("click", function () {
+        currentColor = c;
+        currentWidth = 4;
+        isEraser = false;
+        Array.prototype.forEach.call(colorRow.children, function (el) { el.classList.remove("active"); });
+        b.classList.add("active");
+        eraserBtn.classList.remove("active");
+      });
+      colorRow.appendChild(b);
+    });
+
+    var eraserBtn = document.createElement("button");
+    eraserBtn.type = "button";
+    eraserBtn.className = "swatch eraser-btn";
+    eraserBtn.title = "橡皮擦";
+    eraserBtn.innerHTML = "🧹";
+    eraserBtn.addEventListener("click", function () {
+      isEraser = true;
+      currentColor = "#FFFFFF";
+      currentWidth = ERASER_WIDTH;
+      Array.prototype.forEach.call(colorRow.children, function (el) { el.classList.remove("active"); });
+      eraserBtn.classList.add("active");
+    });
+    colorRow.appendChild(eraserBtn);
+
+    function ctxClearBoard() {
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, board.width, board.height);
+    }
+    function drawSeg(s) {
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.strokeStyle = s.color;
+      ctx.lineWidth = s.width;
+      ctx.beginPath();
+      ctx.moveTo(s.x0, s.y0);
+      ctx.lineTo(s.x1, s.y1);
+      ctx.stroke();
+    }
+    function renderCanvasDelta(strokes) {
+      var obj = strokes || {};
+      var keys = Object.keys(obj);
+      if (keys.length < drawnCount) {
+        ctxClearBoard();
+        drawnKeys = {};
+      }
+      for (var i = 0; i < keys.length; i++) {
+        var k = keys[i];
+        if (!drawnKeys[k]) {
+          drawSeg(obj[k]);
+          drawnKeys[k] = true;
+        }
+      }
+      drawnCount = keys.length;
+      if (keys.length === 0 && drawnCount === 0) ctxClearBoard();
+    }
+
+    function computeAdvanceToNext(current) {
+      var order = current.playerOrder || Object.keys(current.players || {});
+      current.drawerIndex = ((current.drawerIndex || 0) + 1) % order.length;
+      current.questionNumber = (current.questionNumber || 1) + 1;
+      current.status = "inputWord";
+      current.currentWord = null;
+      current.strokes = {};
+      current.guesses = {};
+      current.correctGuessers = {};
+      return current;
+    }
+
+    roomRef.on("value", function (snap) {
+      room = snap.val();
+      if (!room) {
+        loadingView.style.display = "block";
+        lobbyView.style.display = "none";
+        gameView.style.display = "none";
+        endView.style.display = "none";
+        loadingText.innerHTML = "⚠️ 找不到房間 <strong>" + escapeHtml(code) + "</strong>，請確認房號正確，或<a href='index.html' style='color:#FFD166;'>回首頁</a>重新輸入。";
+        return;
+      }
+      render();
+    }, function (err) {
+      loadingView.style.display = "block";
+      lobbyView.style.display = "none";
+      gameView.style.display = "none";
+      endView.style.display = "none";
+      loadingText.innerHTML = "⚠️ 連線錯誤：" + escapeHtml(err.message);
+    });
+
+    function playersInOrder() {
+      var order = room.playerOrder || Object.keys(room.players || {});
+      var list = [];
+      order.forEach(function (id) {
+        if (room.players && room.players[id]) list.push(Object.assign({ id: id }, room.players[id]));
+      });
+      return list;
+    }
+
+    function render() {
+      loadingView.style.display = "none";
+      var status = room.status;
+      if (status === "lobby") {
+        lobbyView.style.display = "block";
+        gameView.style.display = "none";
+        endView.style.display = "none";
+        renderLobby();
+        return;
+      }
+      if (status === "gameEnd") {
+        lobbyView.style.display = "none";
+        gameView.style.display = "none";
+        endView.style.display = "block";
+        renderEnd();
+        return;
+      }
+      lobbyView.style.display = "none";
+      gameView.style.display = "block";
+      endView.style.display = "none";
+      renderGame();
+    }
+
+    function renderLobby() {
+      lobbyCode.textContent = code;
+      var inviteUrl = location.origin + location.pathname.replace("room.html", "index.html") + "?code=" + code;
+      document.getElementById("inviteLinkInput").value = inviteUrl;
+      var list = playersInOrder();
+      playerCount.textContent = list.length;
+      playerList.innerHTML = "";
+      list.forEach(function (p) {
+        var li = document.createElement("li");
+        li.innerHTML = "<span>" + escapeHtml(p.name) + (p.id === room.hostId ? " 👑" : "") + "</span>" +
+          (p.id === myId ? '<span class="you-tag">你</span>' : "");
+        playerList.appendChild(li);
+      });
+    }
+
+    document.getElementById("copyLinkBtn").addEventListener("click", function () {
+      var input = document.getElementById("inviteLinkInput");
+      input.select();
+      try {
+        navigator.clipboard.writeText(input.value).then(function () {
+          var btn = document.getElementById("copyLinkBtn");
+          var old = btn.textContent;
+          btn.textContent = "已複製！";
+          setTimeout(function () { btn.textContent = old; }, 1500);
+        });
+      } catch (e) {}
+    });
+
+    startBtn.addEventListener("click", function () {
+      var list = playersInOrder();
+      if (list.length < 2) { alert("至少需要 2 位玩家才能開始"); return; }
+      startBtn.disabled = true;
+      roomRef.update({
+        status: "inputWord",
+        questionNumber: 1,
+        drawerIndex: 0,
+        currentWord: null,
+        strokes: {},
+        guesses: {},
+        correctGuessers: {}
+      }).finally(function () { startBtn.disabled = false; });
+    });
+
+    function renderGame() {
+      var order = playersInOrder();
+      var drawer = order[room.drawerIndex] || {};
+      var isDrawer = drawer.id === myId;
+
+      roundPill.textContent = "第 " + (room.questionNumber || 1) + " 題";
+      drawerName.textContent = drawer.name || "-";
+      youDrawTag.style.display = isDrawer ? "inline" : "none";
+
+      var sorted = order.slice().sort(function (a, b) { return (b.score || 0) - (a.score || 0); });
+      scoreboard.innerHTML = "";
+      sorted.forEach(function (p) {
+        var li = document.createElement("li");
+        if (p.id === drawer.id) li.className = "drawer";
+        li.innerHTML = "<span>" + escapeHtml(p.name) + (p.id === myId ? " (你)" : "") + "</span><span>" + (p.score || 0) + "</span>";
+        scoreboard.appendChild(li);
+      });
+
+      inputWordBox.style.display = "none";
+      drawingBox.style.display = "none";
+      roundEndBox.style.display = "none";
+      correctCountPill.style.display = "none";
+      guessRow.style.display = "none";
+      alreadyCorrectText.style.display = "none";
+      drawerNoGuessText.style.display = "none";
+
+      if (room.status === "inputWord") {
+        inputWordBox.style.display = "block";
+        drawnKeys = {};
+        drawnCount = 0;
+        currentColor = COLORS[0];
+        currentWidth = 4;
+        isEraser = false;
+        Array.prototype.forEach.call(colorRow.children, function (el) { el.classList.remove("active"); });
+        if (colorRow.children[0]) colorRow.children[0].classList.add("active");
+        if (isDrawer) {
+          inputWordSelf.style.display = "block";
+          waitingForWordText.style.display = "none";
+          wordInput.value = "";
+        } else {
+          inputWordSelf.style.display = "none";
+          waitingForWordText.style.display = "block";
+          waitingForWordText.textContent = "等待 " + (drawer.name || "...") + " 輸入題目...";
+        }
+      } else if (room.status === "drawing") {
+        drawingBox.style.display = "block";
+        renderCanvasDelta(room.strokes);
+        var correctCount = Object.keys(room.correctGuessers || {}).length;
+        correctCountPill.style.display = "inline-block";
+        correctCountPill.textContent = "✔ " + correctCount + " 人答對";
+
+        if (isDrawer) {
+          drawerTools.style.display = "flex";
+          drawerNoGuessText.style.display = "block";
+        } else {
+          drawerTools.style.display = "none";
+          var iGuessedCorrect = room.correctGuessers && room.correctGuessers[myId];
+          guessRow.style.display = iGuessedCorrect ? "none" : "flex";
+          alreadyCorrectText.style.display = iGuessedCorrect ? "block" : "none";
+        }
+      } else if (room.status === "roundEnd") {
+        roundEndBox.style.display = "block";
+        revealedWord.textContent = room.currentWord || "";
+        var cCount = Object.keys(room.correctGuessers || {}).length;
+        var guesserTotal = Math.max(order.length - 1, 0);
+        tallyText.textContent = cCount + " / " + guesserTotal + " 人答對";
+      }
+
+      chatLog.innerHTML = "";
+      var guesses = Object.values(room.guesses || {}).sort(function (a, b) { return b.ts - a.ts; }).slice(0, 40);
+      guesses.forEach(function (g) {
+        var div = document.createElement("div");
+        div.className = "chat-line" + (g.correct ? " correct" : "");
+        div.innerHTML = g.correct
+          ? "<strong>" + escapeHtml(g.name) + "：</strong>答對了！"
+          : "<strong>" + escapeHtml(g.name) + "：</strong>" + escapeHtml(g.text);
+        chatLog.appendChild(div);
+      });
+    }
+
+    function renderEnd() {
+      var order = playersInOrder().sort(function (a, b) { return (b.score || 0) - (a.score || 0); });
+      finalScores.innerHTML = "";
+      order.forEach(function (p, i) {
+        var li = document.createElement("li");
+        li.innerHTML = "<span>" + (i + 1) + ". " + escapeHtml(p.name) + "</span><span style='color:var(--accent-green); font-weight:700;'>" + (p.score || 0) + " 分</span>";
+        finalScores.appendChild(li);
+      });
+    }
+    replayBtn.addEventListener("click", function () {
+      var playersObj = Object.assign({}, room.players);
+      for (var pid in playersObj) playersObj[pid] = Object.assign({}, playersObj[pid], { score: 0 });
+      roomRef.update({
+        status: "inputWord",
+        questionNumber: 1,
+        drawerIndex: 0,
+        currentWord: null,
+        strokes: {},
+        guesses: {},
+        correctGuessers: {},
+        players: playersObj
+      });
+    });
+
+    submitWordBtn.addEventListener("click", function () {
+      var word = wordInput.value.trim();
+      if (!word) return;
+      submitWordBtn.disabled = true;
+      roomRef.update({
+        currentWord: word,
+        status: "drawing",
+        strokes: {},
+        guesses: {},
+        correctGuessers: {}
+      }).finally(function () { submitWordBtn.disabled = false; });
+    });
+    wordInput.addEventListener("keydown", function (e) { if (e.key === "Enter") submitWordBtn.click(); });
+
+    endRoundBtn.addEventListener("click", function () {
+      roomRef.update({ status: "roundEnd" });
+    });
+
+    nextRoundBtn.addEventListener("click", function () {
+      roomRef.transaction(function (current) {
+        if (!current) return current;
+        if (current.status !== "roundEnd") return current;
+        return computeAdvanceToNext(current);
+      });
+    });
+
+    function submitGuess() {
+      var text = guessInput.value.trim();
+      if (!text) return;
+      guessInput.value = "";
+      roomRef.transaction(function (current) {
+        if (!current) return current;
+        if (current.status !== "drawing") return current;
+        if (!current.correctGuessers) current.correctGuessers = {};
+        if (current.correctGuessers[myId]) return current;
+        var isCorrect = current.currentWord && text === current.currentWord;
+        if (!current.guesses) current.guesses = {};
+        var gKey = "g" + Date.now() + Math.random().toString(36).slice(2, 6);
+        current.guesses[gKey] = { playerId: myId, name: myName, text: text, correct: !!isCorrect, ts: Date.now() };
+        if (isCorrect) {
+          current.correctGuessers[myId] = true;
+          current.players[myId].score = (current.players[myId].score || 0) + 10;
+          var order = current.playerOrder || Object.keys(current.players);
+          var drawerId = order[current.drawerIndex];
+          if (drawerId && current.players[drawerId]) {
+            current.players[drawerId].score = (current.players[drawerId].score || 0) + 5;
+          }
+          var guessersNeeded = order.length - 1;
+          var correctCount = Object.keys(current.correctGuessers).length;
+          if (correctCount >= guessersNeeded && guessersNeeded > 0) {
+            current.status = "roundEnd";
+          }
+        }
+        return current;
+      });
+    }
+    guessBtn.addEventListener("click", submitGuess);
+    guessInput.addEventListener("keydown", function (e) { if (e.key === "Enter") submitGuess(); });
+
+    var drawingActive = false;
+    var lastPt = null;
+    var lastPushTs = 0;
+
+    function getPos(e) {
+      var rect = board.getBoundingClientRect();
+      var scaleX = board.width / rect.width;
+      var scaleY = board.height / rect.height;
+      return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
+    }
+    function amIDrawer() {
+      if (!room) return false;
+      var order = room.playerOrder || Object.keys(room.players || {});
+      return order[room.drawerIndex] === myId;
+    }
+    board.addEventListener("pointerdown", function (e) {
+      if (!amIDrawer() || room.status !== "drawing") return;
+      drawingActive = true;
+      lastPt = getPos(e);
+      board.setPointerCapture(e.pointerId);
+    });
+    board.addEventListener("pointermove", function (e) {
+      if (!drawingActive || !amIDrawer()) return;
+      var now = performance.now();
+      if (now - lastPushTs < 28) return;
+      lastPushTs = now;
+      var p = getPos(e);
+      var seg = { x0: lastPt.x, y0: lastPt.y, x1: p.x, y1: p.y, color: currentColor, width: currentWidth };
+      db.ref("rooms/" + code + "/strokes").push(seg);
+      drawSeg(seg);
+      lastPt = p;
+    });
+    function endStroke() { drawingActive = false; }
+    board.addEventListener("pointerup", endStroke);
+    board.addEventListener("pointercancel", endStroke);
+    board.addEventListener("pointerleave", endStroke);
+
+    clearBtn.addEventListener("click", function () {
+      if (!amIDrawer()) return;
+      db.ref("rooms/" + code + "/strokes").set({});
+      ctxClearBoard();
+      drawnKeys = {};
+      drawnCount = 0;
+    });
+
+    function escapeHtml(s) {
+      return String(s || "").replace(/[&<>"']/g, function (c) {
+        return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+      });
+    }
+
+    ctxClearBoard();
+  </script>
+</body>
+</html>
