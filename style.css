@@ -190,7 +190,7 @@ canvas#board {
 .chat-log { flex: 1; overflow-y: auto; max-height: 220px; display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
 .chat-line { font-size: 0.9rem; padding: 5px 8px; border-radius: 6px; }
 .chat-line.correct { background: #DCF5E9; color: #1D8A57; font-weight: 600; }
-.guess-input-row { display: flex; gap: 8px; align-items: center; justify-content: center; margin-bottom: 6px; }
+.guess-input-row { display: flex; gap: 8px; align-items: center; justify-content: center; margin-bottom: 20px; }
 .guess-input-row input { margin-bottom: 0; flex: 1; text-align: center; padding-top: 14px; padding-bottom: 14px; }
 .icon-btn { padding: 11px 14px; border-radius: 10px; border: none; background: var(--accent-green); color: #fff; cursor: pointer; }
 
