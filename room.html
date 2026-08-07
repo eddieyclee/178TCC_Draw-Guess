@@ -41,6 +41,7 @@
             出題者：<strong id="drawerName">-</strong>
             <span id="youDrawTag" style="color:var(--accent-green); font-weight:700; display:none;">（換你出題！）</span>
           </p>
+          <p id="wordHint" style="display:none; margin:0; font-size:1.3rem; letter-spacing:0.35em; color:var(--stone-500); font-weight:700;"></p>
         </div>
 
         <div id="inputWordBox" style="display:none; text-align:center; padding:30px 0;">
@@ -155,6 +156,7 @@
     var correctCountPill = document.getElementById("correctCountPill");
     var drawerName = document.getElementById("drawerName");
     var youDrawTag = document.getElementById("youDrawTag");
+    var wordHint = document.getElementById("wordHint");
 
     var inputWordBox = document.getElementById("inputWordBox");
     var inputWordSelf = document.getElementById("inputWordSelf");
@@ -389,6 +391,7 @@
 
       if (room.status === "inputWord") {
         inputWordBox.style.display = "block";
+        wordHint.style.display = "none";
         drawnKeys = {};
         drawnCount = 0;
         currentColor = COLORS[0];
@@ -415,13 +418,18 @@
         if (isDrawer) {
           drawerTools.style.display = "flex";
           drawerNoGuessText.style.display = "block";
+          wordHint.style.display = "none";
         } else {
           drawerTools.style.display = "none";
           var iGuessedCorrect = room.correctGuessers && room.correctGuessers[myId];
           guessRow.style.display = iGuessedCorrect ? "none" : "flex";
           alreadyCorrectText.style.display = iGuessedCorrect ? "block" : "none";
+          var wordLen = (room.currentWord || "").length;
+          wordHint.style.display = wordLen ? "block" : "none";
+          wordHint.textContent = new Array(wordLen + 1).join("＿");
         }
       } else if (room.status === "roundEnd") {
+        wordHint.style.display = "none";
         roundEndBox.style.display = "block";
         revealedWord.textContent = room.currentWord || "";
         var cCount = Object.keys(room.correctGuessers || {}).length;

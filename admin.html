@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
-<title>主持人監控台</title>
+<title>主席總監控台</title>
 <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="wrap wide">
     <div class="admin-header">
-      <h1 class="display" style="color:#fff; font-size:2.6rem; margin:0;">主持人監控台</h1>
+      <h1 class="display" style="color:#fff; font-size:2.6rem; margin:0;">主席總監控台</h1>
       <span class="pill" id="roomCountPill" style="color:#fff;">0 個房間</span>
     </div>
     <div class="rooms-grid" id="roomsGrid"></div>
@@ -98,6 +98,8 @@
           return '<div style="display:flex; justify-content:space-between;"><span>' + escapeHtml(p.name) + (drawer && p.id === drawer.id ? " ✏️" : "") + "</span><span>" + (p.score || 0) + "</span></div>";
         }).join("");
 
+      var totalScore = players.reduce(function (sum, p) { return sum + (p.score || 0); }, 0);
+
       var correctCount = Object.keys(room.correctGuessers || {}).length;
       var guesserTotal = Math.max(players.length - 1, 0);
 
@@ -119,7 +121,8 @@
         '<label class="field-label" style="margin-bottom:4px;">即時作答</label>' +
         '<div class="mini-log">' + guessesHtml + '</div>' +
         '<label class="field-label" style="margin-bottom:4px;">分數</label>' +
-        '<div style="font-size:0.85rem; margin-bottom:12px;">' + (scoreHtml || '<span style="color:var(--stone-400);">尚無玩家</span>') + '</div>' +
+        '<div style="font-size:0.85rem; margin-bottom:6px;">' + (scoreHtml || '<span style="color:var(--stone-400);">尚無玩家</span>') + '</div>' +
+        '<div style="display:flex; justify-content:space-between; font-size:0.85rem; font-weight:700; color:var(--accent-blue); padding-top:6px; border-top:1px solid var(--stone-200); margin-bottom:12px;"><span>總分</span><span>' + totalScore + '</span></div>' +
         '<div style="display:flex; gap:8px; flex-wrap:wrap;">' +
         '<button type="button" class="admin-start-btn" style="flex:1; min-width:90px; border:none; padding:9px; border-radius:10px; font-size:0.82rem; font-weight:600; color:#fff; background:var(--accent-green); cursor:pointer;" ' + (room.status !== "lobby" || players.length < 2 ? "disabled" : "") + '>開始遊戲</button>' +
         '<button type="button" class="admin-next-btn" style="flex:1; min-width:90px; border:none; padding:9px; border-radius:10px; font-size:0.82rem; font-weight:600; color:#fff; background:var(--accent-blue); cursor:pointer;" ' + (room.status !== "roundEnd" ? "disabled" : "") + '>下一題</button>' +
