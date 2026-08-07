@@ -41,7 +41,7 @@
             出題者：<strong id="drawerName">-</strong>
             <span id="youDrawTag" style="color:var(--accent-green); font-weight:700; display:none;">（換你出題！）</span>
           </p>
-          <div id="wordHintBox" class="word-hint-box" style="display:none;"></div>
+          <p id="wordHintText" style="display:none; margin:0; font-size:0.85rem; color:var(--stone-500); font-weight:600;"></p>
         </div>
 
         <div id="inputWordBox" style="display:none; text-align:center; padding:30px 0;">
@@ -156,7 +156,7 @@
     var correctCountPill = document.getElementById("correctCountPill");
     var drawerName = document.getElementById("drawerName");
     var youDrawTag = document.getElementById("youDrawTag");
-    var wordHintBox = document.getElementById("wordHintBox");
+    var wordHintText = document.getElementById("wordHintText");
 
     var inputWordBox = document.getElementById("inputWordBox");
     var inputWordSelf = document.getElementById("inputWordSelf");
@@ -391,7 +391,7 @@
 
       if (room.status === "inputWord") {
         inputWordBox.style.display = "block";
-        wordHintBox.style.display = "none";
+        wordHintText.style.display = "none";
         drawnKeys = {};
         drawnCount = 0;
         currentColor = COLORS[0];
@@ -418,7 +418,7 @@
         if (isDrawer) {
           drawerTools.style.display = "flex";
           drawerNoGuessText.style.display = "block";
-          wordHintBox.style.display = "none";
+          wordHintText.style.display = "none";
         } else {
           drawerTools.style.display = "none";
           var iGuessedCorrect = room.correctGuessers && room.correctGuessers[myId];
@@ -426,14 +426,14 @@
           alreadyCorrectText.style.display = iGuessedCorrect ? "block" : "none";
           var wordLen = (room.currentWord || "").length;
           if (wordLen) {
-            wordHintBox.style.display = "flex";
-            wordHintBox.innerHTML = new Array(wordLen).fill('<span class="blank"></span>').join("");
+            wordHintText.style.display = "block";
+            wordHintText.textContent = "提示：" + wordLen + " 個字";
           } else {
-            wordHintBox.style.display = "none";
+            wordHintText.style.display = "none";
           }
         }
       } else if (room.status === "roundEnd") {
-        wordHintBox.style.display = "none";
+        wordHintText.style.display = "none";
         roundEndBox.style.display = "block";
         revealedWord.textContent = room.currentWord || "";
         var cCount = Object.keys(room.correctGuessers || {}).length;
