@@ -186,6 +186,13 @@ canvas#board {
 }
 .eraser-btn.active { background: var(--stone-200); }
 
+.word-hint-box { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.word-hint-box .blank {
+  width: 20px; height: 4px;
+  border-radius: 2px;
+  background: var(--stone-400);
+}
+
 .chat-box { display: flex; flex-direction: column; height: 100%; justify-content: center; }
 .chat-log { flex: 0 1 auto; overflow-y: auto; max-height: 220px; display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
 .chat-log:empty { display: none; }
